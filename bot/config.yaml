@@ -1,0 +1,18 @@
+# AI Companion 本地运行配置
+# 注意：此文件包含敏感信息，请勿提交到 Git（已在 .gitignore 中排除）
+
+ollama:
+  endpoint: "http://localhost:11434"  # 替换为 Ollama 服务器地址
+  model: "qwen2.5-coder:7b"          # 替换为微调后的模型名
+
+memory:
+  persist_dir: "./chroma_db"
+  top_k: 5
+
+emotion:
+  enable: true
+  tag_format: "[{emotion}]"
+
+logging:
+  level: "INFO"
+  file: "bot.log"

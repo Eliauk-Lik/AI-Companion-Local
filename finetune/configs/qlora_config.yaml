@@ -1,0 +1,45 @@
+# LLaMA-Factory QLoRA 微调配置文件
+# 适用于 Qwen2.5-7B-Instruct 在 RTX 4060 8GB 上微调
+
+### 模型配置
+model_name_or_path: "Qwen/Qwen2.5-7B-Instruct"
+template: "qwen"
+
+### 训练配置
+stage: "sft"
+do_train: true
+finetuning_type: "lora"
+lora_target: "all"
+lora_rank: 8
+lora_alpha: 16
+lora_dropout: 0.05
+
+### 数据集
+dataset: "my_chat_history"          # 需在 dataset_info.json 中注册
+dataset_dir: "data"
+preprocessing_num_workers: 4
+
+### 输出路径
+output_dir: "finetune/output"
+logging_steps: 10
+save_steps: 500
+plot_loss: true
+
+### 训练超参数
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 4
+learning_rate: 5.0e-5
+num_train_epochs: 3.0
+lr_scheduler_type: "cosine"
+warmup_ratio: 0.1
+bf16: true
+ddp_timeout: 180000000
+
+### 量化配置（QLoRA）
+quantization_bit: 4
+quantization_method: "bitsandbytes"
+double_quantization: true
+
+### 其他
+overwrite_output_dir: true
+report_to: "none"

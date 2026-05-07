@@ -3,7 +3,7 @@
 
 ollama:
   endpoint: "http://localhost:11434"  # WSL2 下自动检测 Windows 宿主 IP
-  model: "qwen2.5:3b"                 # 模型名
+  model: "auto"                 # auto=自动检测已安装模型
 
 memory:
   persist_dir: "./chroma_db"

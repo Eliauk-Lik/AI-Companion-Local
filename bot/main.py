@@ -60,6 +60,8 @@ class AIChatBot:
         self.config = self._load_config(config_path)
         self.ollama_endpoint = _detect_wsl_host(self.config["ollama"]["endpoint"])
         self.model = self.config["ollama"]["model"]
+        if self.model == "auto":
+            self.model = self._detect_model()
         self.memory_store = get_memory_store(
             self.config.get("memory", {}).get("persist_dir", "./chroma_db")
         )
@@ -121,6 +123,40 @@ class AIChatBot:
 - 回答用户的问题，并适当展开话题
 - 如果提到了过去的回忆，可以自然地提及
 - 回复长度适中，避免机械重复"""
+
+    def _detect_model(self) -> str:
+        """自动检测 Ollama 中已安装的模型，让用户选择或自动选取
+
+        Returns:
+            选中的模型名称；若检测失败，返回默认模型 qwen2.5:3b
+        """
+        import urllib.request, json
+        try:
+            url = f"{self.ollama_endpoint}/api/tags"
+            resp = json.loads(urllib.request.urlopen(url, timeout=5).read())
+            models = [m["name"] for m in resp.get("models", [])]
+        except Exception:
+            print("⚠️ 无法获取模型列表，使用默认模型 qwen2.5:3b")
+            return "qwen2.5:3b"
+
+        if not models:
+            print("⚠️ 未检测到已安装的模型，使用默认模型 qwen2.5:3b")
+            return "qwen2.5:3b"
+
+        if len(models) == 1:
+            print(f"✅ 自动选择模型: {models[0]}")
+            return models[0]
+
+        print("\n📋 检测到以下模型:")
+        for i, name in enumerate(models, 1):
+            print(f"  [{i}] {name}")
+        while True:
+            choice = input(f"请选择模型 (1-{len(models)}): ").strip()
+            if choice.isdigit() and 1 <= int(choice) <= len(models):
+                selected = models[int(choice) - 1]
+                print(f"✅ 已选择: {selected}")
+                return selected
+            print(f"请输入 1-{len(models)}")
 
     def _retrieve_context(self, user_input: str) -> str:
         """从长期记忆中检索相关历史对话，拼接成上下文字符串"""

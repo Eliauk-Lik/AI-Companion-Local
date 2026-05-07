@@ -5,8 +5,7 @@
 客户端可根据标签展示本地表情包。
 """
 
-import re
-from typing import List, Tuple
+from typing import List
 
 class EmotionEngine:
     def __init__(self):
@@ -35,17 +34,24 @@ class EmotionEngine:
                     break  # 一种情绪只记录一次
         return detected
 
+    # 情绪 → Unicode Emoji 映射
+    _EMOJI_MAP = {
+        'happy': '😊',
+        'sad': '😢',
+        'angry': '😠',
+        'surprised': '😲',
+        'love': '🥰',
+        'shy': '😳',
+        'confused': '🤔',
+        'tired': '😴',
+    }
+
     def generate_emoji_tag(self, text: str) -> str:
-        """
-        为 AI 回复生成表情标签，用于嵌入回复文本中
-        例如：回复末尾添加 "[happy]"
-        """
+        """为 AI 回复生成 emoji 标签，直接返回 Unicode 表情"""
         emotions = self.analyze(text)
         if emotions:
-            # 简单策略：取第一个检测到的情绪
-            primary_emotion = emotions[0]
-            return f"[{primary_emotion}]"
-        return ""
+            return self._EMOJI_MAP.get(emotions[0], '')
+        return ''
 
     def enrich_response(self, original_response: str) -> str:
         """

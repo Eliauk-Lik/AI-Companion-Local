@@ -27,11 +27,38 @@ from bot.memory.vector_store import get_memory_store
 from bot.emotion_engine import EmotionEngine
 
 
+def _detect_wsl_host(endpoint: str) -> str:
+    """WSL2 环境下自动检测 Windows 宿主 IP，替代 localhost"""
+    if "localhost" not in endpoint and "127.0.0.1" not in endpoint:
+        return endpoint
+    # 仅在 WSL2 中尝试自动检测
+    try:
+        with open("/proc/version") as f:
+            if "microsoft" not in f.read().lower() and "wsl" not in f.read().lower():
+                return endpoint
+    except OSError:
+        return endpoint
+    # 从路由表获取 Windows 宿主 IP
+    import subprocess, re
+    try:
+        result = subprocess.run(["ip", "route", "show", "default"], capture_output=True, text=True)
+        m = re.search(r"via\s+([\d.]+)", result.stdout)
+        if m:
+            host_ip = m.group(1)
+            new_endpoint = endpoint.replace("localhost", host_ip).replace("127.0.0.1", host_ip)
+            print(f"🔍 WSL2 检测到 Windows 宿主 IP: {host_ip}，使用端点: {new_endpoint}")
+            return new_endpoint
+    except Exception:
+        pass
+    print("⚠️ WSL2 环境下 localhost 可能无法访问 Ollama，请手动设置 OLLAMA_HOST=0.0.0.0")
+    return endpoint
+
+
 class AIChatBot:
     def __init__(self, config_path: str = "bot/config.yaml"):
         """初始化聊天机器人"""
         self.config = self._load_config(config_path)
-        self.ollama_endpoint = self.config["ollama"]["endpoint"]
+        self.ollama_endpoint = _detect_wsl_host(self.config["ollama"]["endpoint"])
         self.model = self.config["ollama"]["model"]
         self.memory_store = get_memory_store(
             self.config.get("memory", {}).get("persist_dir", "./chroma_db")

@@ -71,12 +71,13 @@ def analyze_language_style(collection, profile: PersonalityProfile) -> None:
             tone_counter[char] += 1
     lp.common_tone_words = [w for w, _ in tone_counter.most_common(8)]
 
-    # 口头禅（2字高频词组）
+    # 口头禅（2字高频词组，仅统计纯中文 bigram）
+    _han = re.compile(r'^[一-鿿]{2}$')
     phrase_counter = Counter()
     for text in all_responses:
         for i in range(len(text) - 1):
             bigram = text[i:i+2]
-            if not re.search(r'[\s，。！？、；：""''（）　]', bigram):
+            if _han.match(bigram):
                 phrase_counter[bigram] += 1
     min_count = max(3, len(all_responses) * 0.01)
     lp.top_phrases = [p for p, c in phrase_counter.most_common(15) if c >= min_count][:8]

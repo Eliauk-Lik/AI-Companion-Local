@@ -37,4 +37,3 @@ diagnostic_report.txt
 .claude/
 data/train.json
 data/eval.json
-data/dataset_info.json

@@ -32,3 +32,6 @@ config_local.yaml
 .venv/
 .superpowers/
 diagnostic_report.txt
+
+# Claude Code
+.claude/

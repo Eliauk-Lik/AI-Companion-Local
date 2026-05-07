@@ -20,11 +20,10 @@ AI-Companion-Local 交互式 CLI 向导
 """
 
 import json
-import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 # 项目根目录
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -162,38 +161,6 @@ def confirm_params(params: Dict[str, Any]) -> bool:
 # 数据处理
 # ============================================================
 
-def run_diagnose() -> List[Path]:
-    """运行 diagnose 模块探测微信数据路径
-
-    Returns:
-        找到的微信数据目录列表
-    """
-    print()
-    print('─' * 50)
-    print()
-    print('  正在探测微信数据路径...')
-
-    diagnose_script = _PROJECT_ROOT / 'scripts' / 'diagnose.py'
-
-    try:
-        result = subprocess.run(
-            [sys.executable, str(diagnose_script), '--auto'],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            cwd=str(_PROJECT_ROOT),
-        )
-        print(result.stdout)
-    except subprocess.TimeoutExpired:
-        print('  [警告] 路径探测超时，请手动指定路径。')
-        return []
-    except FileNotFoundError:
-        print('  [警告] diagnose.py 未找到，跳过自动探测。')
-        return []
-
-    # 返回空列表 —— 目前 diagnose 只打印报告，
-    # 实际数据路径通过 ask_chat_file 直接让用户提供导出文件
-    return []
 
 
 def run_clean_data(chat_file: Path, params: Dict[str, Any]) -> bool:

@@ -8,9 +8,8 @@
 
 探测策略（用户优先）：
     1. 询问用户是否知道路径
-    2. 扫描操作系统默认路径
-    3. 通过系统接口查询（Windows 注册表 / macOS plist）
-    4. 全盘搜索（可选，需用户确认）
+    2. 通过系统接口查询（Windows 注册表）
+    3. 扫描操作系统默认路径
 
 支持平台：
     - Windows: 微信 v3.x (WeChat Files) / v4.x (xwechat_files)，注册表探测
@@ -29,7 +28,7 @@ import platform
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 
 # ============================================================
@@ -214,11 +213,6 @@ def _get_windows_registry_wechat_path() -> Optional[Path]:
     return None
 
 
-def _get_macos_plist_wechat_path() -> Optional[Path]:
-    """macOS 上不需要 plist 探测（默认路径足够可靠），预留接口"""
-    return None
-
-
 # ============================================================
 # 综合探测
 # ============================================================
@@ -252,11 +246,6 @@ def get_wechat_paths(interactive: bool = True) -> List[Path]:
         registry_path = _get_windows_registry_wechat_path()
         if registry_path and registry_path not in found_paths:
             found_paths.append(registry_path)
-    elif plt == 'macos':
-        plist_path = _get_macos_plist_wechat_path()
-        if plist_path and plist_path not in found_paths:
-            found_paths.append(plist_path)
-
     # 策略3：默认路径
     if plt == 'windows':
         default_paths = _get_windows_default_wechat_paths()
@@ -272,10 +261,8 @@ def get_wechat_paths(interactive: bool = True) -> List[Path]:
         if p not in found_paths:
             found_paths.append(p)
 
-    # 策略4：全盘搜索（仅交互模式下可选）
     if interactive and not found_paths:
-        if _ask_yes_no('未找到微信数据目录，是否进行全盘搜索？（可能较慢）', default=False):
-            print('正在搜索...（此功能尚未实现，请手动指定路径）')
+        print('未找到微信数据目录。请使用 --path 手动指定路径。')
 
     return found_paths
 
@@ -346,15 +333,6 @@ def _ask_user_for_path() -> Optional[Path]:
             else:
                 print(f'[警告] 路径不存在: {p}')
     return None
-
-
-def _ask_yes_no(question: str, default: bool = True) -> bool:
-    """询问用户是/否问题"""
-    suffix = ' (Y/n): ' if default else ' (y/N): '
-    answer = input(question + suffix).strip().lower()
-    if not answer:
-        return default
-    return answer in ('y', 'yes', '是')
 
 
 # ============================================================

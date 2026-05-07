@@ -30,14 +30,22 @@
 AI-Companion-Local/
 ├── scripts/
 │   ├── wizard.py              # 交互式 CLI 向导（零基础用户入口）
-│   ├── diagnose.py            # 跨平台微信/QQ 数据路径探测
-│   ├── clean_data.py          # 聊天记录清洗与说话人识别
-│   ├── diagnose_wechat.py     # [旧版] Windows 微信诊断（保留兼容）
+│   ├── diagnose.py            # 跨平台微信/QQ 数据路径探测 (Win/Mac/Linux/WSL2)
+│   ├── clean_data.py          # 聊天记录清洗、说话人识别、Session 分段
+│   ├── generate_skill.py      # 人格 Skill 一键生成入口
 │   ├── parsers/               # 多格式聊天记录解析器
-│   │   ├── base.py            #   Message 数据结构 + Parser 抽象基类
-│   │   ├── wechat_csv.py      #   微信 CSV 导出解析
+│   │   ├── base.py            #   Message 数据结构 + 共享时间解析
+│   │   ├── wechat_csv.py      #   微信 CSV 解析（兼容新旧版导出格式）
 │   │   └── qq_json.py         #   QQ JSON 导出解析
-│   └── skill_gen/             # 人格 Skill 生成模块（Phase 2）
+│   └── skill_gen/             # 人格 Skill 生成引擎
+│       ├── pair_builder.py    #   上下文窗口对话对构建器
+│       ├── report_generator.py #   双版本 Markdown 报告生成
+│       └── analyzers/         #   互动模式分析器（5 维度）
+│           ├── language_style.py    #   语言风格
+│           ├── reply_pattern.py     #   回复模式
+│           ├── emotion_dynamic.py   #   情感互动
+│           ├── relationship_role.py #   关系角色
+│           └── content_themes.py    #   话题偏好
 ├── bot/
 │   ├── main.py                # CLI 对话入口（ChatML + Ollama）
 │   ├── emotion_engine.py      # 情感关键词检测引擎
@@ -48,10 +56,10 @@ AI-Companion-Local/
 │   └── configs/
 │       └── qlora_config.yaml  # LLaMA-Factory QLoRA 微调配置
 ├── data/
-│   ├── raw/                   # 原始导出聊天记录
-│   └── processed/             # 清洗后数据 + 生成的 Skill 文件
-├── models/                    # 微调后模型文件（.gitignore）
-├── chroma_db/                 # ChromaDB 持久化数据（.gitignore）
+│   ├── raw/                   # 原始导出聊天记录 (.gitignore)
+│   └── processed/             # 清洗后数据 + Skill 文件 (.gitignore)
+├── models/                    # 微调后模型文件 (.gitignore)
+├── chroma_db/                 # ChromaDB 持久化数据 (.gitignore)
 ├── .gitignore
 ├── LICENSE
 ├── requirements.txt
@@ -108,17 +116,30 @@ python scripts/wizard.py
 
 向导会引导你完成：选择目标对象 → 提供聊天文件 → 自动清洗处理，全程交互式问答。
 
-### 5. 或逐步手动运行
+### 5. 生成人格 Skill 文件
+
+```bash
+python scripts/generate_skill.py
+```
+
+输出两个版本：
+- `skill_<name>_cloud_safe.md` — 仅统计描述，可安全粘贴到 ChatGPT
+- `skill_<name>_local_full.md` — 含对话片段，仅供本地 Ollama 使用
+
+### 6. 或逐步手动运行
 
 ```bash
 # 步骤1：诊断微信数据路径（可选）
 python scripts/diagnose.py
 
 # 步骤2：清洗聊天记录
-python scripts/clean_data.py --input data/raw/wechat.csv --output-dir data/processed/
+python scripts/clean_data.py --input data/raw/wechat.csv
+
+# 步骤3：生成 Skill 文件
+python scripts/generate_skill.py
 ```
 
-### 6. 启动 AI 对话伴侣
+### 7. 启动 AI 对话伴侣
 
 ```bash
 # 确保 Ollama 已启动并加载了模型
@@ -143,7 +164,7 @@ python bot/main.py
 ## 开发路线图
 
 - [x] Phase 1 — 数据基础层：跨平台路径探测、多格式解析、交互式说话人识别、CLI 向导
-- [ ] Phase 2 — 核心分析引擎：上下文窗口对话对构建、5 维度互动模式分析、双版本 Skill Markdown 生成
+- [x] Phase 2 — 核心分析引擎：上下文窗口对话对构建、5 维度互动模式分析、双版本 Skill Markdown 生成
 - [ ] Phase 3 — 体验增强：bot 集成 Skill 文件、Mac/Linux QQ 支持、AstrBot Provider、微调文档
 
 ## 开源协议

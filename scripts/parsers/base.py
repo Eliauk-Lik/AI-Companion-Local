@@ -97,3 +97,51 @@ def detect_parser(input_path: Path) -> Optional[BaseParser]:
         if parser.supports(input_path):
             return parser
     return None
+
+
+def parse_datetime(time_str: str) -> datetime:
+    """解析聊天记录中常见的时间格式（微信/QQ 共用）
+
+    支持的格式：
+        - 2024-01-15 18:30:00
+        - 2024-01-15 18:30
+        - 2024/01/15 18:30:00
+        - Unix 时间戳（秒/毫秒）
+
+    Raises:
+        ValueError: 无法解析
+    """
+    if not time_str:
+        raise ValueError("空时间字符串")
+
+    # 剥离毫秒和时区后缀（如 .000Z, +08:00）
+    cleaned = time_str.strip()
+    if '.' in cleaned and cleaned.endswith('Z'):
+        cleaned = cleaned.split('.')[0] + 'Z'
+    # 尝试 Z 结尾的 ISO 格式
+    if cleaned.endswith('Z'):
+        cleaned = cleaned[:-1]
+
+    for fmt in [
+        '%Y-%m-%d %H:%M:%S',
+        '%Y-%m-%d %H:%M',
+        '%Y/%m/%d %H:%M:%S',
+        '%Y/%m/%d %H:%M',
+        '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%dT%H:%M',
+    ]:
+        try:
+            return datetime.strptime(cleaned, fmt)
+        except ValueError:
+            continue
+
+    try:
+        ts = int(cleaned)
+        if ts > 1e12:
+            return datetime.fromtimestamp(ts / 1000)
+        if ts > 1e9:
+            return datetime.fromtimestamp(ts)
+    except (ValueError, OSError):
+        pass
+
+    raise ValueError(f"无法解析时间字符串: {time_str}")

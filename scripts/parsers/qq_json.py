@@ -19,11 +19,10 @@ JSON 格式特征：
 """
 
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import List
 
-from .base import BaseParser, Message
+from .base import BaseParser, Message, parse_datetime
 
 
 class QQJSONParser(BaseParser):
@@ -86,7 +85,7 @@ class QQJSONParser(BaseParser):
             time_raw = msg.get('time') or msg.get('timestamp') or msg.get('send_time')
             if time_raw:
                 try:
-                    msg_time = self._parse_datetime(str(time_raw))
+                    msg_time = parse_datetime(str(time_raw))
                 except ValueError:
                     pass
 
@@ -102,41 +101,3 @@ class QQJSONParser(BaseParser):
 
         return messages
 
-    def _parse_datetime(self, time_str: str) -> datetime:
-        """尝试解析 QQ 导出的多种时间格式
-
-        QQ 导出常见格式：
-            - 2024-01-15 18:30:00
-            - 2024-01-15 18:30
-            - 1705312200 (Unix 时间戳，秒)
-            - 1705312200000 (Unix 时间戳，毫秒)
-        """
-        if not time_str:
-            raise ValueError("空时间字符串")
-
-        formats = [
-            '%Y-%m-%d %H:%M:%S',
-            '%Y-%m-%d %H:%M',
-            '%Y/%m/%d %H:%M:%S',
-            '%Y/%m/%d %H:%M',
-            '%Y-%m-%dT%H:%M:%S',
-            '%Y-%m-%dT%H:%M',
-        ]
-
-        for fmt in formats:
-            try:
-                return datetime.strptime(time_str.strip(), fmt)
-            except ValueError:
-                continue
-
-        # Unix 时间戳
-        try:
-            ts = int(time_str.strip())
-            if ts > 1e12:
-                return datetime.fromtimestamp(ts / 1000)
-            if ts > 1e9:
-                return datetime.fromtimestamp(ts)
-        except (ValueError, OSError):
-            pass
-
-        raise ValueError(f"无法解析时间字符串: {time_str}")

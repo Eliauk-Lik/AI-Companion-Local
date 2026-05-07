@@ -42,6 +42,9 @@ class AIChatBot:
         # 对话历史（当前会话的短期记忆）
         self.conversation_history: List[Dict[str, str]] = []
 
+        # 加载人格 Skill 文件作为系统提示词
+        self.system_prompt = self._load_skill()
+
     def _load_config(self, config_path: str) -> Dict:
         """加载 YAML 配置文件"""
         config_file = Path(config_path)
@@ -55,6 +58,43 @@ class AIChatBot:
         with open(config_file, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
 
+    def _load_skill(self) -> str:
+        """加载人格 Skill 文件作为系统提示词
+
+        优先级：config 中指定的路径 > 自动检测 data/processed/ 下的 cloud_safe 文件 > 默认提示词
+        """
+        skill_path = self.config.get("personality", {}).get("skill_file", "")
+
+        # 如果未指定，自动检测
+        if not skill_path:
+            processed_dir = Path("data/processed")
+            if processed_dir.exists():
+                candidates = list(processed_dir.glob("skill_*_cloud_safe.md"))
+                if candidates:
+                    skill_path = str(candidates[0])
+                    print(f"📄 自动检测到 Skill 文件: {skill_path}")
+
+        # 读取 Skill 文件
+        if skill_path:
+            skill_file = Path(skill_path)
+            if skill_file.exists():
+                content = skill_file.read_text(encoding="utf-8")
+                # 从第一个 ## 标题开始取，跳过伦理声明头部
+                idx = content.find("\n## ")
+                if idx != -1:
+                    content = content[idx + 1:]
+                print(f"✅ 已加载人格 Skill: {skill_path}")
+                return content.strip()
+
+        # 默认提示词
+        print("ℹ️ 未找到 Skill 文件，使用默认系统提示词。")
+        print("   提示：运行 python scripts/generate_skill.py 生成人格文件。")
+        return """你是一个贴心的AI伴侣，正在与一位熟悉的朋友聊天。你的回复应该：
+- 自然、亲切，像真人朋友一样
+- 回答用户的问题，并适当展开话题
+- 如果提到了过去的回忆，可以自然地提及
+- 回复长度适中，避免机械重复"""
+
     def _retrieve_context(self, user_input: str) -> str:
         """从长期记忆中检索相关历史对话，拼接成上下文字符串"""
         memories = self.memory_store.retrieve_relevant(user_input, top_k=self.top_k)
@@ -67,11 +107,7 @@ class AIChatBot:
 
     def _build_prompt(self, user_input: str, context: str) -> str:
         """构建发送给模型的完整提示词（采用 ChatML 格式，对 Qwen 系列更友好）"""
-        system_prompt = """你是一个贴心的AI伴侣，正在与一位熟悉的朋友聊天。你的回复应该：
-- 自然、亲切，像真人朋友一样
-- 回答用户的问题，并适当展开话题
-- 如果提到了过去的回忆，可以自然地提及
-- 回复长度适中，避免机械重复"""
+        system_prompt = self.system_prompt
 
         # 构建消息列表
         messages = []

@@ -13,6 +13,9 @@ emotion:
   enable: true
   tag_format: "[{emotion}]"
 
+personality:
+  skill_file: ""  # 留空自动检测 data/processed/skill_*_cloud_safe.md
+
 logging:
   level: "INFO"
   file: "bot.log"

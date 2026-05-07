@@ -35,3 +35,6 @@ diagnostic_report.txt
 
 # Claude Code
 .claude/
+data/train.json
+data/eval.json
+data/dataset_info.json

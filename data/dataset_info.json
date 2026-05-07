@@ -1,0 +1,9 @@
+{
+  "my_chat_history": {
+    "file_name": "train.json",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "conversations"
+    }
+  }
+}

@@ -1,13 +1,7 @@
 # 核心依赖
 chromadb>=0.4.22
-ollama>=0.1.6
 pyyaml>=6.0
+requests>=2.28.0
 
-# 数据处理
-pandas>=2.0.0
-
-# 可选：微调相关（在微调环境中安装）
-# transformers>=4.38.0
-# peft>=0.8.0
-# bitsandbytes>=0.41.0
-# datasets>=2.16.0
+# 微调相关（在微调环境中另外安装）
+# pip install llamafactory

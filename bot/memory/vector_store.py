@@ -60,7 +60,10 @@ class MemoryStore:
     def clear_all(self):
         """清空所有记忆（慎用）"""
         self.client.delete_collection("conversation_memory")
-        self.collection = self.client.create_collection("conversation_memory")
+        self.collection = self.client.get_or_create_collection(
+            name="conversation_memory",
+            metadata={"hnsw:space": "cosine"}
+        )
 
 
 # 单例模式，全局共享

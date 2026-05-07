@@ -30,3 +30,5 @@ chroma_db/
 config_local.yaml
 *.secret
 .venv/
+.superpowers/
+diagnostic_report.txt

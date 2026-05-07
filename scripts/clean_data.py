@@ -47,7 +47,7 @@ MEDIA_PLACEHOLDER_RE = re.compile(
     r'\[图片\]|\[表情\]|\[视频\]|\[语音\]|\[文件\]|'
     r'\[动画表情\]|\[链接\]|\[小程序\]|\[引用\]|'
     r'\[红包\]|\[转账\]|\[聊天记录\]|\[位置\]|'
-    r'\[QQ红包\]|\[戳一戳\]',
+    r'\[QQ红包\]|\[戳一戳\]|\[表情包\]|\[表情包：\S+\]',
     re.IGNORECASE,
 )
 
@@ -163,6 +163,8 @@ def interactive_speaker_selection(
     if len(speakers) == 1:
         print(f'  只有一个说话人: {speakers[0]}')
         my_name = input('  你的名字: ').strip()
+        if not my_name:
+            my_name = '我'
         partner_name = speakers[0]
     else:
         default_me = speakers[0]  # 发言最多的通常是用户自己
@@ -291,6 +293,7 @@ def save_sessions(sessions: List[List[Message]], output_path: Path) -> None:
                 'sender': msg.sender,
                 'content': msg.content,
                 'time': msg.time.isoformat() if msg.time else None,
+                'msg_type': msg.msg_type,
             })
         speakers = list(set(msg.sender for msg in session))
         start_time = session[0].time.isoformat() if session[0].time else None

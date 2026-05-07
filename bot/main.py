@@ -34,8 +34,9 @@ def _detect_wsl_host(endpoint: str) -> str:
     # 仅在 WSL2 中尝试自动检测
     try:
         with open("/proc/version") as f:
-            if "microsoft" not in f.read().lower() and "wsl" not in f.read().lower():
-                return endpoint
+            version = f.read().lower()
+        if "microsoft" not in version and "wsl" not in version:
+            return endpoint
     except OSError:
         return endpoint
     # 从路由表获取 Windows 宿主 IP
@@ -108,9 +109,11 @@ class AIChatBot:
             skill_file = Path(skill_path)
             if skill_file.exists():
                 content = skill_file.read_text(encoding="utf-8")
-                # 从第一个 ## 标题开始取，跳过伦理声明头部
+                # 跳过伦理声明头部，从第一个 ## 标题开始
                 idx = content.find("\n## ")
-                if idx != -1:
+                if idx == -1:
+                    idx = content.find("## ") - 1  # 补偿 +1
+                if idx >= 0:
                     content = content[idx + 1:]
                 print(f"✅ 已加载人格 Skill: {skill_path}")
                 return content.strip()
@@ -241,7 +244,7 @@ class AIChatBot:
 
         # 3. 调用模型
         reply = self._call_ollama(prompt)
-        if reply is None:
+        if not reply:
             return None
 
         # 4. 添加表情标签

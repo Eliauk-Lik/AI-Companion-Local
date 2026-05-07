@@ -149,14 +149,94 @@ python scripts/generate_skill.py
 
 ### 7. 启动 AI 对话伴侣
 
+本项目支持多种本地推理方案，按上手难度排序推荐。
+
+#### 方案一：Ollama（推荐，默认集成）
+
+[Ollama](https://ollama.com) 是最易用的本地 LLM 推理工具，底层基于 llama.cpp，
+一行命令即可运行模型，并提供 OpenAI 兼容 API。
+
 ```bash
-# 确保 Ollama 已启动并加载了模型
+# 1. 安装 Ollama（macOS/Linux 一行，Windows 下载安装包）
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 2. 启动服务
 ollama serve
+
+# 3. 下载模型（推荐 qwen2.5:7b，8GB 显存可流畅运行）
 ollama pull qwen2.5:7b
 
-# 启动对话
+# 4. 启动 AI 对话伴侣
 python bot/main.py
 ```
+
+`bot/config.yaml` 中的默认配置指向 `localhost:11434`，与 Ollama 默认端口一致，
+开箱即用。
+
+#### 方案二：llama.cpp（进阶，性能最优）
+
+[llama.cpp](https://github.com/ggerganov/llama.cpp) 是 Ollama 的底层推理引擎，
+直接使用可省去 ~0.2GB VRAM 开销、获得 ~6% 的速度提升。适合追求极致性能或
+想在低配设备（树莓派、老笔记本）上运行的用户。
+
+```bash
+# 1. 克隆并编译
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cpp && make -j
+
+# 2. 启动 OpenAI 兼容 API（端口 8080）
+./llama-server -m models/qwen2.5-7b-q4_k_m.gguf --port 8080
+```
+
+修改 `bot/config.yaml` 将 endpoint 指向 `http://localhost:8080` 即可对接。
+
+> Ollama 和 LM Studio（GUI 工具）底层也是 llama.cpp。三者的速度差距在 10% 以内，
+> 普通用户直接用 Ollama 即可，不需要折腾编译。
+
+#### 部署微调后的模型
+
+完成 QLoRA 微调后，将模型部署为 GGUF + Ollama：
+
+```bash
+# 1. 合并 LoRA 适配器
+python -c "
+from peft import PeftModel
+from transformers import AutoModelForCausalLM, AutoTokenizer
+base = AutoModelForCausalLM.from_pretrained('Qwen/Qwen2.5-7B-Instruct')
+model = PeftModel.from_pretrained(base, 'finetune/output/checkpoint-xxx')
+model = model.merge_and_unload()
+model.save_pretrained('./models/companion-merged')
+AutoTokenizer.from_pretrained('Qwen/Qwen2.5-7B-Instruct').save_pretrained('./models/companion-merged')
+"
+
+# 2. 转换为 GGUF
+pip install gguf
+python llama.cpp/convert_hf_to_gguf.py ./models/companion-merged --outtype f16
+
+# 3. 量化（Q4_K_M 是 8GB 显存的最佳平衡点）
+llama.cpp/build/bin/llama-quantize ./models/companion-merged-f16.gguf Q4_K_M
+
+# 4. 注册到 Ollama
+cat > Modelfile << EOF
+FROM ./models/companion-merged-Q4_K_M.gguf
+SYSTEM "$(cat data/processed/skill_xxx_cloud_safe.md)"
+PARAMETER temperature 0.8
+PARAMETER repeat_penalty 1.1
+EOF
+ollama create companion -f Modelfile
+
+# 5. 运行
+ollama run companion
+```
+
+### VRAM 估算参考
+
+| 模型规模 | Q4_K_M 大小 | 推荐显存 | 适用硬件 |
+|----------|------------|----------|----------|
+| 1.5B | ~1.0 GB | 4 GB | 无独显笔记本 |
+| 7B | ~4.7 GB | 8 GB | RTX 3060/4060 |
+| 14B | ~8.5 GB | 12 GB | RTX 4070+ |
+| 32B | ~20 GB | 24 GB | RTX 3090/4090 |
 
 ## WSL2 用户注意
 

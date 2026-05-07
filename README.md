@@ -99,10 +99,18 @@ pip install -r requirements.txt
 
 ### 3. 导出聊天记录
 
-**微信：**
-1. 打开微信 PC 版 → 进入目标聊天窗口
-2. 点击右上角 `…` → `聊天记录` → `导出聊天记录`
-3. 选择 CSV 格式，保存到本地
+> 微信 4.0 及以上版本不再支持直接导出 CSV，推荐使用开源工具 WeFlow。
+
+**微信（推荐：WeFlow）：**
+
+[WeFlow](https://github.com/hicccc77/WeFlow) 是一个完全本地运行的微信聊天记录查看与导出工具，支持微信 4.0+。
+
+1. 前往 [WeFlow Releases](https://github.com/hicccc77/WeFlow/releases) 下载对应系统的安装包
+2. 启动 WeFlow，选择要导出的聊天对话
+3. 导出为 CSV 格式，保存到本地
+4. 将 CSV 文件放到项目的 `data/raw/` 目录下
+
+> WeFlow 支持 Windows / macOS / Linux，MIT 开源协议，数据完全本地处理。
 
 **QQ：**
 1. 打开 QQ → `设置` → `安全设置` → `消息管理` → `导出消息记录`

@@ -253,7 +253,8 @@ ollama run companion
 
 - [x] Phase 1 — 数据基础层：跨平台路径探测、多格式解析、交互式说话人识别、CLI 向导
 - [x] Phase 2 — 核心分析引擎：上下文窗口对话对构建、5 维度互动模式分析、双版本 Skill Markdown 生成
-- [ ] Phase 3 — 体验增强：bot 集成 Skill 文件、Mac/Linux QQ 支持、AstrBot Provider、微调文档
+- [x] Phase 3 — 体验增强：bot 集成 Skill 文件、模型自动检测、Unicode Emoji 表情、微调文档、QLoRA 训练脚本
+- [ ] Phase 4 — 微调增强：合成数据扩充（DeepSeek 生成对话混入训练集）、Loss Masking 优化、微信真实表情包集成（C 层）
 
 ## 开源协议
 

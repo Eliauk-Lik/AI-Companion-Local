@@ -1,8 +1,8 @@
 # LLaMA-Factory QLoRA 微调配置文件
-# 适用于 Qwen2.5-7B-Instruct 在 RTX 4060 8GB 上微调
+# 适用于 Qwen2.5-3B-Instruct 在 RTX 4060 8GB 上微调
 
 ### 模型配置
-model_name_or_path: "Qwen/Qwen2.5-7B-Instruct"
+model_name_or_path: "Qwen/Qwen2.5-3B-Instruct"
 template: "qwen"
 
 ### 训练配置

@@ -20,6 +20,7 @@ AI-Companion-Local 交互式 CLI 向导
 """
 
 import json
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -87,7 +88,8 @@ def ask_chat_file() -> Optional[Path]:
     print()
     print('  请提供聊天记录文件:')
     print('   （微信：通过聊天窗口 → 导出聊天记录 → CSV 格式导出）')
-    print('   （QQ：通过消息管理器 → 导出消息记录 → JSON 格式导出）')
+    print('   （QQ：使用 QQ Chat Exporter 导出为 JSON 格式）')
+    print('         https://github.com/shuakami/qq-chat-exporter')
     print()
     print('  你可以直接把文件拖到终端窗口，或输入文件路径。')
     print()

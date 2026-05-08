@@ -355,7 +355,7 @@ def main():
     parser_obj = detect_parser(input_path)
     if parser_obj is None:
         print(f'[错误] 无法识别文件格式: {input_path}')
-        print('  支持的格式: 微信 CSV 导出、QQ JSON 导出')
+        print('  支持的格式: 微信 CSV 导出、QCE (QQ Chat Exporter) JSON 导出')
         sys.exit(1)
 
     print(f'  检测到格式: {parser_obj.format_name}')

@@ -112,9 +112,18 @@ pip install -r requirements.txt
 
 > WeFlow 支持 Windows / macOS / Linux，MIT 开源协议，数据完全本地处理。
 
-**QQ：**
-1. 打开 QQ → `设置` → `安全设置` → `消息管理` → `导出消息记录`
-2. 选择 JSON 格式导出
+**QQ（推荐：QQ Chat Exporter）：**
+
+新版 QQ (QQNT) 不再内置聊天记录导出功能，需使用开源工具 [QQ Chat Exporter (QCE)](https://github.com/shuakami/qq-chat-exporter)。
+
+1. 前往 [QCE Releases](https://github.com/shuakami/qq-chat-exporter/releases) 下载对应系统的安装包
+2. 解压后运行 `launcher-user.bat`（Windows）或 `./launcher-user.sh`（Linux）
+3. 用手机 QQ 扫码登录，复制控制台显示的 Access Token
+4. 浏览器打开 `http://localhost:40653/qce-v4-tool`，输入 Token
+5. 在会话列表中选择要导出的聊天 → 导出 → 选择 **JSON** 格式
+6. 将导出的 JSON 文件放到项目的 `data/raw/` 目录下
+
+> QCE 基于 NapCatQQ，GPL-3.0 开源协议，数据完全本地处理。支持 Shell 模式（独立运行）和 Framework 模式（与桌面 QQ 共存）。
 
 ### 4. 运行交互式向导（推荐）
 

@@ -23,6 +23,7 @@
     python scripts/diagnose.py --path /path/to/wechat  # 指定路径诊断
 """
 
+import json
 import os
 import platform
 import sys
@@ -415,7 +416,170 @@ def scan_msg_directory(msg_dir: Path) -> Dict:
 # 报告生成
 # ============================================================
 
-def generate_report(wechat_dirs: List[Path]) -> str:
+def generate_qq_report(json_path: Path, file_stats: Dict) -> str:
+    """生成 QQ JSON 导出文件的验证报告"""
+    lines: List[str] = []
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    lines.append('=' * 60)
+    lines.append('  QQ 聊天记录导出验证报告 (QCE)')
+    lines.append(f'  生成时间: {now}')
+    lines.append('=' * 60)
+    lines.append('')
+    lines.append(f'  文件: {json_path}')
+    lines.append(f'  文件大小: {file_stats["file_size_mb"]} MB')
+
+    chat_info = file_stats.get('chat_info')
+    if chat_info:
+        lines.append(f'  聊天对象: {chat_info["chat_name"]}')
+        lines.append(f'  聊天类型: {chat_info["chat_type"]}')
+
+    self_name = file_stats.get('self_name')
+    if self_name:
+        lines.append(f'  导出者: {self_name}')
+
+    lines.append(f'  总消息数: {file_stats["total_messages"]}')
+    lines.append(f'  有效消息: {file_stats["valid_messages"]}')
+    lines.append(f'  说话人数: {file_stats["unique_speakers"]}')
+    lines.append('')
+
+    if file_stats['speakers']:
+        lines.append('  说话人统计:')
+        for name, count in file_stats['speakers'].most_common(10):
+            lines.append(f'    - {name}: {count} 条')
+        lines.append('')
+
+    date_start = file_stats.get('date_start')
+    date_end = file_stats.get('date_end')
+    if date_start and date_end:
+        lines.append(f'  时间范围: {date_start} ~ {date_end}')
+        lines.append('')
+
+    if file_stats['errors']:
+        lines.append(f'  [!] 发现 {len(file_stats["errors"])} 个问题:')
+        for err in file_stats['errors']:
+            lines.append(f'      - {err}')
+        lines.append('')
+    else:
+        lines.append('  [OK] 文件格式正常，可以用于后续处理。')
+        lines.append('')
+
+    lines.append('  下一步：')
+    lines.append(f'    python scripts/clean_data.py --input "{json_path}"')
+    lines.append('    python scripts/wizard.py')
+    lines.append('')
+
+    return '\n'.join(lines)
+
+
+def validate_qq_export(json_path: Path) -> Dict:
+    """验证 QCE (QQ Chat Exporter) 导出的 JSON 文件
+
+    检查 QCE JSON 结构、messages 数组、必要字段，统计基础信息。
+
+    Returns:
+        包含 total_messages, valid_messages, unique_speakers,
+        speakers (Counter), file_size_mb, date_start, date_end, errors,
+        chat_info, self_name 的字典
+    """
+    from collections import Counter
+
+    stats: Dict = {
+        'total_messages': 0,
+        'valid_messages': 0,
+        'unique_speakers': 0,
+        'speakers': Counter(),
+        'file_size_mb': 0,
+        'date_start': None,
+        'date_end': None,
+        'chat_info': None,
+        'self_name': None,
+        'errors': [],
+    }
+
+    if not json_path.exists():
+        stats['errors'].append(f'文件不存在: {json_path}')
+        return stats
+
+    file_size = json_path.stat().st_size
+    stats['file_size_mb'] = round(file_size / (1024 * 1024), 2)
+
+    try:
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        stats['errors'].append(f'JSON 解析失败: {e}')
+        return stats
+    except UnicodeDecodeError:
+        try:
+            with open(json_path, 'r', encoding='gbk') as f:
+                data = json.load(f)
+        except Exception as e:
+            stats['errors'].append(f'编码检测失败: {e}')
+            return stats
+
+    if not isinstance(data, dict):
+        stats['errors'].append('JSON 顶层不是对象（dict）')
+        return stats
+
+    # 检查 QCE 必需字段
+    if 'messages' not in data:
+        stats['errors'].append("缺少 'messages' 字段，请确认是 QCE 导出的 JSON 文件")
+        return stats
+    if 'chatInfo' not in data:
+        stats['errors'].append("缺少 'chatInfo' 字段，请确认是 QCE 导出的 JSON 文件")
+        return stats
+
+    chat_info = data['chatInfo']
+    stats['chat_info'] = {
+        'chat_name': chat_info.get('chatName', '未知'),
+        'chat_type': chat_info.get('chatType', '未知'),
+    }
+
+    export_meta = data.get('exportMetadata', {})
+    stats['self_name'] = export_meta.get('selfName')
+
+    messages = data['messages']
+    if not isinstance(messages, list):
+        stats['errors'].append("'messages' 不是数组")
+        return stats
+
+    stats['total_messages'] = len(messages)
+
+    timestamps = []
+    for msg in messages:
+        if not isinstance(msg, dict):
+            continue
+
+        sender = (msg.get('senderName') or '').strip()
+        msg_type = (msg.get('msgType') or 'text').strip()
+
+        if msg_type == 'system':
+            continue
+
+        if sender:
+            stats['speakers'][sender] += 1
+
+        time_raw = msg.get('timestamp')
+        if time_raw:
+            try:
+                from .base import parse_datetime
+                parsed = parse_datetime(str(time_raw))
+                timestamps.append(parsed)
+            except ValueError:
+                pass
+
+    stats['valid_messages'] = sum(stats['speakers'].values())
+    stats['unique_speakers'] = len(stats['speakers'])
+
+    if timestamps:
+        stats['date_start'] = min(timestamps).isoformat()
+        stats['date_end'] = max(timestamps).isoformat()
+
+    if stats['valid_messages'] == 0:
+        stats['errors'].append('没有解析到有效的文本消息')
+
+    return stats
     """生成微信聊天数据健康诊断报告
 
     Args:
@@ -543,8 +707,28 @@ def main():
                         help='手动指定微信数据根目录路径')
     parser.add_argument('--output', '-o', type=str, default=None,
                         help='报告输出路径（默认: diagnostic_report.txt）')
+    parser.add_argument('--qq', action='store_true',
+                        help='QQ 模式：验证 QCE (QQ Chat Exporter) 导出的 JSON 文件（需配合 --path）')
 
     args = parser.parse_args()
+
+    # QQ 模式：验证导出的 JSON 文件
+    if args.qq:
+        if not args.path:
+            print('[错误] QQ 模式需要 --path 指定导出的 JSON 文件路径。')
+            print('  用法: python scripts/diagnose.py --qq --path export.json')
+            sys.exit(1)
+        json_path = Path(args.path).expanduser().resolve()
+        if not json_path.exists():
+            print(f'[错误] 文件不存在: {json_path}')
+            sys.exit(1)
+        stats = validate_qq_export(json_path)
+        report = generate_qq_report(json_path, stats)
+        print(report)
+        output_path = Path(args.output) if args.output else Path('qq_diagnostic_report.txt')
+        saved_path = save_report(report, output_path)
+        print(f'报告已保存至: {saved_path}')
+        return
 
     # 打印运行环境信息
     print(f'检测到平台: {platform.system()} {platform.release()}')
